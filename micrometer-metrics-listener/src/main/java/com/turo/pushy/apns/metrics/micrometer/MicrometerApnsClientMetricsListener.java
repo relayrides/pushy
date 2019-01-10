@@ -28,7 +28,9 @@ import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
@@ -74,9 +76,21 @@ import java.util.concurrent.atomic.AtomicInteger;
  *  server.</dd>
  * </dl>
  *
+ * <p>The names of the metrics registered to the {@link io.micrometer.core.instrument.MeterRegistry} can be overridden by providing
+ * a mapper to the constructor. For example, if caller wants to replace the instrument name for the metric {@value #NOTIFICATION_TIMER_NAME}
+ * with {@code some.custom.name} instead of using its default name, {@code notifications.sent.timer}, the map object should
+ * be structured as following:</p>
+ *
+ * <pre>
+ *   final Map&#60;String, String&#62; overrides = new HashMap&#60;String, String&#62;();
+ *   overrides.put(MicrometerApnsClientMetricsListener.NOTIFICATION_TIMER_NAME, &#34;some.custom.name&#34;);
+ * </pre>
+ *
  * @author <a href="https://github.com/jchambers">Jon Chambers</a>
  */
 public class MicrometerApnsClientMetricsListener implements ApnsClientMetricsListener {
+
+    private final Map<String, String> instrumentNameOverrides;
 
     private final Timer notificationTimer;
     private final ConcurrentMap<Long, Long> notificationStartTimes;
@@ -151,16 +165,53 @@ public class MicrometerApnsClientMetricsListener implements ApnsClientMetricsLis
      * @param tags an optional list of tags to attach to metrics
      */
     public MicrometerApnsClientMetricsListener(final MeterRegistry meterRegistry, final String... tags) {
+        this(meterRegistry, new HashMap<String, String>(), tags);
+    }
+
+    /**
+     * Constructs a new Micrometer metrics listener that adds metrics to the given registry with the given list of tags.
+     *
+     * @param meterRegistry the registry to which to add metrics
+     * @param overrides a map of instrument name overrides; honored against default names during registration
+     * @param tags an optional list of tags to attach to metrics; may be {@code null} or empty, in which case no tags
+     * are added
+     */
+    public MicrometerApnsClientMetricsListener(final MeterRegistry meterRegistry,
+                                               final Map<String, String> overrides,
+                                               final List<String> tags) {
+        this(meterRegistry, new HashMap<String, String>(), tags != null ? tags.toArray(EMPTY_STRING_ARRAY) : null);
+    }
+
+    /**
+     * Constructs a new Micrometer metrics listener that adds metrics to the given registry with the given list of tags.
+     *
+     * @param meterRegistry the registry to which to add metrics
+     * @param overrides a map of instrument name overrides; honored against default names during registration
+     * @param tags an optional list of tags to attach to metrics
+     */
+    public MicrometerApnsClientMetricsListener(final MeterRegistry meterRegistry,
+                                               final Map<String, String> overrides,
+                                               final String... tags) {
+        this.instrumentNameOverrides = overrides;
+
+        final String notificationTimerName = actualNameForInstrument(NOTIFICATION_TIMER_NAME);
+        final String writeFailuresCounterName = actualNameForInstrument(WRITE_FAILURES_COUNTER_NAME);
+        final String sentNotificationsCounterName = actualNameForInstrument(SENT_NOTIFICATIONS_COUNTER_NAME);
+        final String acceptedNotificationsCounterName = actualNameForInstrument(ACCEPTED_NOTIFICATIONS_COUNTER_NAME);
+        final String rejectedNotificationsCounterName = actualNameForInstrument(REJECTED_NOTIFICATIONS_COUNTER_NAME);
+        final String connectionFailuresCounterName = actualNameForInstrument(CONNECTION_FAILURES_COUNTER_NAME);
+        final String openConnectionsGaugeName = actualNameForInstrument(OPEN_CONNECTIONS_GAUGE_NAME);
+
         this.notificationStartTimes = new ConcurrentHashMap<>();
-        this.notificationTimer = meterRegistry.timer(NOTIFICATION_TIMER_NAME, tags);
+        this.notificationTimer = meterRegistry.timer(notificationTimerName, tags);
 
-        this.writeFailures = meterRegistry.counter(WRITE_FAILURES_COUNTER_NAME, tags);
-        this.sentNotifications = meterRegistry.counter(SENT_NOTIFICATIONS_COUNTER_NAME, tags);
-        this.acceptedNotifications = meterRegistry.counter(ACCEPTED_NOTIFICATIONS_COUNTER_NAME, tags);
-        this.rejectedNotifications = meterRegistry.counter(REJECTED_NOTIFICATIONS_COUNTER_NAME, tags);
+        this.writeFailures = meterRegistry.counter(writeFailuresCounterName, tags);
+        this.sentNotifications = meterRegistry.counter(sentNotificationsCounterName, tags);
+        this.acceptedNotifications = meterRegistry.counter(acceptedNotificationsCounterName, tags);
+        this.rejectedNotifications = meterRegistry.counter(rejectedNotificationsCounterName, tags);
 
-        this.connectionFailures = meterRegistry.counter(CONNECTION_FAILURES_COUNTER_NAME, tags);
-        meterRegistry.gauge(OPEN_CONNECTIONS_GAUGE_NAME, openConnections);
+        this.connectionFailures = meterRegistry.counter(connectionFailuresCounterName, tags);
+        meterRegistry.gauge(openConnectionsGaugeName, openConnections);
     }
 
     /**
@@ -255,5 +306,15 @@ public class MicrometerApnsClientMetricsListener implements ApnsClientMetricsLis
     @Override
     public void handleConnectionCreationFailed(final ApnsClient apnsClient) {
         this.connectionFailures.increment();
+    }
+
+    /**
+     * Returns the overridden name for the instrument if it exists, otherwise the default value.
+     *
+     * @param key the default name for the instrument
+     * @return the actual name for the instrument
+     */
+    public String actualNameForInstrument(String key) {
+        return instrumentNameOverrides.get(key) != null ? instrumentNameOverrides.get(key) : key;
     }
 }

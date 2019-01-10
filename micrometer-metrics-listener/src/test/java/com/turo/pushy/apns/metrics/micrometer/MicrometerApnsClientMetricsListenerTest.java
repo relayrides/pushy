@@ -29,12 +29,18 @@ import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 
 public class MicrometerApnsClientMetricsListenerTest {
 
     private MeterRegistry meterRegistry;
     private MicrometerApnsClientMetricsListener listener;
+
+    private static final String OVERRIDDEN_INSTRUMENT_NAME = "notifications.overridden";
 
     @Before
     public void setUp() {
@@ -44,7 +50,8 @@ public class MicrometerApnsClientMetricsListenerTest {
 
     @Test
     public void testHandleWriteFailure() {
-        final Counter writeFailures = this.meterRegistry.get(MicrometerApnsClientMetricsListener.WRITE_FAILURES_COUNTER_NAME).counter();
+        final String instrumentName = this.listener.actualNameForInstrument(MicrometerApnsClientMetricsListener.WRITE_FAILURES_COUNTER_NAME);
+        final Counter writeFailures = this.meterRegistry.get(instrumentName).counter();
         assertEquals(0, (int) writeFailures.count());
 
         this.listener.handleWriteFailure(null, 1);
@@ -53,7 +60,8 @@ public class MicrometerApnsClientMetricsListenerTest {
 
     @Test
     public void testHandleNotificationSent() {
-        final Counter sentNotifications = this.meterRegistry.get(MicrometerApnsClientMetricsListener.SENT_NOTIFICATIONS_COUNTER_NAME).counter();
+        final String instrumentName = this.listener.actualNameForInstrument(MicrometerApnsClientMetricsListener.SENT_NOTIFICATIONS_COUNTER_NAME);
+        final Counter sentNotifications = this.meterRegistry.get(instrumentName).counter();
         assertEquals(0, (int) sentNotifications.count());
 
         this.listener.handleNotificationSent(null, 1);
@@ -62,7 +70,8 @@ public class MicrometerApnsClientMetricsListenerTest {
 
     @Test
     public void testHandleNotificationAccepted() {
-        final Counter acceptedNotifications = this.meterRegistry.get(MicrometerApnsClientMetricsListener.ACCEPTED_NOTIFICATIONS_COUNTER_NAME).counter();
+        final String instrumentName = this.listener.actualNameForInstrument(MicrometerApnsClientMetricsListener.ACCEPTED_NOTIFICATIONS_COUNTER_NAME);
+        final Counter acceptedNotifications = this.meterRegistry.get(instrumentName).counter();
         assertEquals(0, (int) acceptedNotifications.count());
 
         this.listener.handleNotificationAccepted(null, 1);
@@ -71,7 +80,8 @@ public class MicrometerApnsClientMetricsListenerTest {
 
     @Test
     public void testHandleNotificationRejected() {
-        final Counter rejectedNotifications = this.meterRegistry.get(MicrometerApnsClientMetricsListener.REJECTED_NOTIFICATIONS_COUNTER_NAME).counter();
+        final String instrumentName = this.listener.actualNameForInstrument(MicrometerApnsClientMetricsListener.REJECTED_NOTIFICATIONS_COUNTER_NAME);
+        final Counter rejectedNotifications = this.meterRegistry.get(instrumentName).counter();
         assertEquals(0, (int) rejectedNotifications.count());
 
         this.listener.handleNotificationRejected(null, 1);
@@ -80,7 +90,8 @@ public class MicrometerApnsClientMetricsListenerTest {
 
     @Test
     public void testHandleConnectionAddedAndRemoved() {
-        final Gauge openConnectionGauge = this.meterRegistry.get(MicrometerApnsClientMetricsListener.OPEN_CONNECTIONS_GAUGE_NAME).gauge();
+        final String instrumentName = this.listener.actualNameForInstrument(MicrometerApnsClientMetricsListener.OPEN_CONNECTIONS_GAUGE_NAME);
+        final Gauge openConnectionGauge = this.meterRegistry.get(instrumentName).gauge();
 
         this.listener.handleConnectionAdded(null);
 
@@ -93,10 +104,22 @@ public class MicrometerApnsClientMetricsListenerTest {
 
     @Test
     public void testHandleConnectionCreationFailed() {
-        final Counter connectionFailures = this.meterRegistry.get(MicrometerApnsClientMetricsListener.CONNECTION_FAILURES_COUNTER_NAME).counter();
+        final String instrumentName = this.listener.actualNameForInstrument(MicrometerApnsClientMetricsListener.CONNECTION_FAILURES_COUNTER_NAME);
+        final Counter connectionFailures = this.meterRegistry.get(instrumentName).counter();
         assertEquals(0, (int) connectionFailures.count());
 
         this.listener.handleConnectionCreationFailed(null);
         assertEquals(1, (int) connectionFailures.count());
+    }
+
+    @Test
+    public void testHonorOverriddenInstrumentNames() {
+        final Map<String, String> overrides = new HashMap<>();
+        overrides.put(MicrometerApnsClientMetricsListener.WRITE_FAILURES_COUNTER_NAME, OVERRIDDEN_INSTRUMENT_NAME);
+
+        final MicrometerApnsClientMetricsListener listener = new MicrometerApnsClientMetricsListener(this.meterRegistry, overrides);
+
+        final String actualInstrumentName = listener.actualNameForInstrument(MicrometerApnsClientMetricsListener.WRITE_FAILURES_COUNTER_NAME);
+        assertNotEquals(MicrometerApnsClientMetricsListener.WRITE_FAILURES_COUNTER_NAME, actualInstrumentName);
     }
 }
