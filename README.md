@@ -47,6 +47,17 @@ Before you can get started with Pushy, you'll need to do some provisioning work 
 
 Generally speaking, APNs clients must authenticate with the APNs server by some means before they can send push notifications. Currently, APNs (and Pushy) supports two authentication methods: TLS-based authentication and token-based authentication. The two approaches are mutually-exclusive; you'll need to pick one or the other for each client.
 
+If your system-wide trust store does not already include it, you may need to add the GeoTrust Global CA root certificate as a trusted certificate:
+
+```java
+final ApnsClient apnsClientWithGeoTrustCertificate = new ApnsClientBuilder()
+        .setApnsServer(ApnsClientBuilder.DEVELOPMENT_APNS_HOST)
+        .setTrustedServerCertificateChain(ApnsClientBuilder.getGeoTrustGlobalCaRootCertificate())
+        .build();
+```
+
+For additional details about trusting the GeoTrust Global CA root, please see TODO.
+
 ### TLS authentication
 
 In TLS-based authentication, clients present a TLS certificate to the server when connecting, and may send notifications to any "topic" named in the certificate. Generally, this means that a single client can only send push notifications to a single receiving app.

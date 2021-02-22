@@ -31,9 +31,16 @@ import org.junit.jupiter.api.Test;
 import java.io.File;
 import java.io.InputStream;
 import java.security.KeyStore.PrivateKeyEntry;
+import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.util.Date;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class ApnsClientBuilderTest {
 
@@ -177,5 +184,27 @@ public class ApnsClientBuilderTest {
                         .setEventLoopGroup(EVENT_LOOP_GROUP)
                         .setClientCredentials(new File(this.getClass().getResource(SINGLE_TOPIC_CLIENT_KEYSTORE_FILENAME).toURI()), KEYSTORE_PASSWORD)
                         .build());
+    }
+
+    @Test
+    void testSetTrustedServerCertificateChainExpired() {
+        final Instant now = Instant.now();
+        final Clock clock = Clock.fixed(now, ZoneId.systemDefault());
+
+        final X509Certificate validCertificate = mock(X509Certificate.class);
+        when(validCertificate.getNotAfter()).thenReturn(new Date(now.plusSeconds(3600).toEpochMilli()));
+
+        assertDoesNotThrow(() -> new ApnsClientBuilder(clock).setTrustedServerCertificateChain(validCertificate));
+
+        final X509Certificate expiredCertificate = mock(X509Certificate.class);
+        when(expiredCertificate.getNotAfter()).thenReturn(new Date(now.minusSeconds(3600).toEpochMilli()));
+
+        assertThrows(CertificateException.class, () -> new ApnsClientBuilder(clock).setTrustedServerCertificateChain(expiredCertificate));
+    }
+
+    @Test
+    void testGetGeoTrustGlobalCaRootCertificate() {
+        final X509Certificate geoTrustCertificate = assertDoesNotThrow(ApnsClientBuilder::getGeoTrustGlobalCaRootCertificate);
+        assertEquals("CN=GeoTrust Global CA, O=GeoTrust Inc., C=US", geoTrustCertificate.getIssuerDN().getName());
     }
 }

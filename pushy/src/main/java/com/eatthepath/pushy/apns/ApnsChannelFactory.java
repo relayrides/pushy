@@ -41,10 +41,13 @@ import io.netty.util.ReferenceCounted;
 import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.Promise;
 import io.netty.util.concurrent.PromiseNotifier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.security.cert.CertPathBuilderException;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -70,6 +73,8 @@ class ApnsChannelFactory implements PooledObjectFactory<Channel>, Closeable {
 
     static final AttributeKey<Promise<Channel>> CHANNEL_READY_PROMISE_ATTRIBUTE_KEY =
             AttributeKey.valueOf(ApnsChannelFactory.class, "channelReadyPromise");
+
+    private static final Logger log = LoggerFactory.getLogger(ApnsChannelFactory.class);
 
     ApnsChannelFactory(final SslContext sslContext, final ApnsSigningKey signingKey, final Duration tokenExpiration,
                        final ProxyHandlerFactory proxyHandlerFactory, final Duration connectTimeout,
@@ -163,6 +168,10 @@ class ApnsChannelFactory implements PooledObjectFactory<Channel>, Closeable {
                     Math.max(Math.min(delay * 2, MAX_CONNECT_DELAY_SECONDS), MIN_CONNECT_DELAY_SECONDS);
 
             ApnsChannelFactory.this.currentDelaySeconds.compareAndSet(delay, updatedDelay);
+
+            if (isCertificatePathException(future.cause())) {
+                log.warn("Unable to build a certificate path to the APNs server's certificate. This usually means that your system's default trust store does not include the root CA for the APNs server. For more information and possible solutions, please see TODO.");
+            }
         });
 
 
@@ -182,6 +191,18 @@ class ApnsChannelFactory implements PooledObjectFactory<Channel>, Closeable {
         }, delay, TimeUnit.SECONDS);
 
         return channelReadyPromise;
+    }
+
+    /**
+     * Tests whether the given {@code Throwable} is or is caused by a {@link CertPathBuilderException}.
+     *
+     * @param throwable the throwable to test for a {@code CertPathBuilderExceptionCause}; may be {@code null}
+     *
+     * @return {@code true} if the given throwable is or is caused by a {@code CertPathBuilderException} or
+     * {@code false} otherwise
+     */
+    static boolean isCertificatePathException(final Throwable throwable) {
+        return throwable != null && (throwable instanceof CertPathBuilderException || isCertificatePathException(throwable.getCause()));
     }
 
     /**

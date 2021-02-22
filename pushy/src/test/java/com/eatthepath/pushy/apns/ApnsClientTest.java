@@ -31,7 +31,6 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
-import javax.net.ssl.SSLHandshakeException;
 import java.io.InputStream;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -242,19 +241,11 @@ public class ApnsClientTest extends AbstractClientServerTest {
             final PushNotificationFuture<SimpleApnsPushNotification, PushNotificationResponse<SimpleApnsPushNotification>> sendFuture =
                     cautiousClient.sendNotification(new SimpleApnsPushNotification(DEVICE_TOKEN, TOPIC, PAYLOAD));
 
-            Throwable cause = assertThrows(ExecutionException.class, sendFuture::get,
+            final Throwable cause = assertThrows(ExecutionException.class, sendFuture::get,
                     "Clients must not connect to untrusted servers.");
 
-            boolean hasSSLHandshakeException = false;
-            {
-                while (!hasSSLHandshakeException && cause != null) {
-                    hasSSLHandshakeException = (cause instanceof SSLHandshakeException);
-                    cause = cause.getCause();
-                }
-            }
-
-            assertTrue(hasSSLHandshakeException,
-                    "Clients should refuse to connect to untrusted servers due to an SSL handshake failure.");
+            assertTrue(ApnsChannelFactory.isCertificatePathException(cause),
+                    "Clients should refuse to connect to untrusted servers due to a certificate path exception.");
         } finally {
             cautiousClient.close().get();
             server.shutdown().get();

@@ -55,6 +55,14 @@ public class ExampleApp {
                         "TEAMID1234", "KEYID67890"))
                 .build();
 
+        // Required in some environments: trust the GeoTrust Global CA root certificate
+        final ApnsClient apnsClientWithGeoTrustCertificate = new ApnsClientBuilder()
+                .setApnsServer(ApnsClientBuilder.DEVELOPMENT_APNS_HOST)
+                .setTrustedServerCertificateChain(ApnsClientBuilder.getGeoTrustGlobalCaRootCertificate())
+                .setSigningKey(ApnsSigningKey.loadFromPkcs8File(new File("/path/to/key.p8"),
+                        "TEAMID1234", "KEYID67890"))
+                .build();
+
         // Optional: we can listen for metrics by setting a metrics listener.
         final ApnsClient apnsClientWithMetricsListener = new ApnsClientBuilder()
                 .setApnsServer(ApnsClientBuilder.DEVELOPMENT_APNS_HOST)
