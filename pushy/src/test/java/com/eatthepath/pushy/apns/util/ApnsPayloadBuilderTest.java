@@ -123,6 +123,43 @@ public abstract class ApnsPayloadBuilderTest {
         }
     }
 
+    @SuppressWarnings("unchecked")
+    @Test
+    void testSetLocalizedAlertBodyWithFallback() {
+        final String alertKey = "test.alert";
+        final String alertBodyFallback = "fallback";
+
+        this.builder.setAlertBody("Alert body!");
+        this.builder.setLocalizedAlertMessageWithFallback(alertKey, alertBodyFallback);
+
+        {
+            final Map<String, Object> aps = this.extractApsObjectFromPayloadString(this.builder.build());
+            final Map<String, Object> alert = (Map<String, Object>) aps.get("alert");
+
+            assertEquals(alertKey, alert.get("loc-key"));
+            assertEquals(alertBodyFallback, alert.get("body"));
+            assertNull(alert.get("loc-args"));
+        }
+
+        // We're happy here as long as nothing explodes
+        this.builder.setLocalizedAlertMessageWithFallback(alertKey, null, (String[]) null);
+
+        final String[] alertArgs = new String[] { "Moose", "helicopter" };
+        this.builder.setLocalizedAlertMessageWithFallback(alertKey, alertBodyFallback, alertArgs);
+
+        {
+            final Map<String, Object> aps = this.extractApsObjectFromPayloadString(this.builder.build());
+            final Map<String, Object> alert = (Map<String, Object>) aps.get("alert");
+
+            assertEquals(alertKey, alert.get("loc-key"));
+            assertEquals(alertBodyFallback, alert.get("body"));
+
+            final List<Object> argsArray = (List<Object>) alert.get("loc-args");
+            assertEquals(alertArgs.length, argsArray.size());
+            assertTrue(argsArray.containsAll(java.util.Arrays.asList(alertArgs)));
+        }
+    }
+
     @Test
     void testSetAlertTitle() {
         final String alertTitle = "This is a test alert message.";
@@ -182,6 +219,47 @@ public abstract class ApnsPayloadBuilderTest {
     }
 
     @Test
+    void testSetLocalizedAlertTitleWithFallback() {
+        final String localizedAlertTitleKey = "alert.title";
+        final String alertTitleFallback = "alertFallback";
+
+        this.builder.setAlertTitle("Alert title!");
+        this.builder.setLocalizedAlertTitleWithFallback(localizedAlertTitleKey, alertTitleFallback);
+
+        {
+            final Map<String, Object> aps = this.extractApsObjectFromPayloadString(this.builder.build());
+
+            @SuppressWarnings("unchecked")
+            final Map<String, Object> alert = (Map<String, Object>) aps.get("alert");
+
+            assertEquals(localizedAlertTitleKey, alert.get("title-loc-key"));
+            assertEquals(alertTitleFallback, alert.get("title"));
+            assertNull(alert.get("title-loc-args"));
+        }
+
+        // We're happy here as long as nothing explodes
+        this.builder.setLocalizedAlertTitleWithFallback(localizedAlertTitleKey, null, (String[]) null);
+
+        final String[] alertArgs = new String[] { "Moose", "helicopter" };
+        this.builder.setLocalizedAlertTitleWithFallback(localizedAlertTitleKey, alertTitleFallback, alertArgs);
+
+        {
+            final Map<String, Object> aps = this.extractApsObjectFromPayloadString(this.builder.build());
+
+            @SuppressWarnings("unchecked")
+            final Map<String, Object> alert = (Map<String, Object>) aps.get("alert");
+
+            assertEquals(localizedAlertTitleKey, alert.get("title-loc-key"));
+            assertEquals(alertTitleFallback, alert.get("title"));
+
+            @SuppressWarnings("unchecked")
+            final List<Object> argsArray = (List<Object>) alert.get("title-loc-args");
+            assertEquals(alertArgs.length, argsArray.size());
+            assertTrue(argsArray.containsAll(java.util.Arrays.asList(alertArgs)));
+        }
+    }
+
+    @Test
     void testSetAlertSubtitle() {
         final String alertSubtitle = "This is a test alert message.";
 
@@ -202,7 +280,7 @@ public abstract class ApnsPayloadBuilderTest {
 
     @SuppressWarnings("unchecked")
     @Test
-    void testSetLocalizedAlertSubitle() {
+    void testSetLocalizedAlertSubtitle() {
         final String subtitleKey = "test.subtitle";
 
         this.builder.setAlertSubtitle("Subtitle!");
@@ -228,6 +306,43 @@ public abstract class ApnsPayloadBuilderTest {
             final Map<String, Object> alert = (Map<String, Object>) aps.get("alert");
 
             assertEquals(subtitleKey, alert.get("subtitle-loc-key"));
+
+            final List<Object> argsArray = (List<Object>) alert.get("subtitle-loc-args");
+            assertEquals(subtitleArgs.length, argsArray.size());
+            assertTrue(argsArray.containsAll(java.util.Arrays.asList(subtitleArgs)));
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    void testSetLocalizedAlertSubtitleWithFallback() {
+        final String subtitleKey = "test.subtitle";
+        final String subtitleFallback = "fallback";
+
+        this.builder.setAlertSubtitle("Subtitle!");
+        this.builder.setLocalizedAlertSubtitleWithFallback(subtitleKey, subtitleFallback);
+
+        {
+            final Map<String, Object> aps = this.extractApsObjectFromPayloadString(this.builder.build());
+            final Map<String, Object> alert = (Map<String, Object>) aps.get("alert");
+
+            assertEquals(subtitleKey, alert.get("subtitle-loc-key"));
+            assertEquals(subtitleFallback, alert.get("subtitle"));
+            assertNull(alert.get("subtitle-loc-args"));
+        }
+
+        // We're happy here as long as nothing explodes
+        this.builder.setLocalizedAlertTitleWithFallback(subtitleKey, null, (String[]) null);
+
+        final String[] subtitleArgs = new String[] { "Moose", "helicopter" };
+        this.builder.setLocalizedAlertTitleWithFallback(subtitleKey, subtitleFallback, subtitleArgs);
+
+        {
+            final Map<String, Object> aps = this.extractApsObjectFromPayloadString(this.builder.build());
+            final Map<String, Object> alert = (Map<String, Object>) aps.get("alert");
+
+            assertEquals(subtitleKey, alert.get("subtitle-loc-key"));
+            assertEquals(subtitleFallback, alert.get("subtitle"));
 
             final List<Object> argsArray = (List<Object>) alert.get("subtitle-loc-args");
             assertEquals(subtitleArgs.length, argsArray.size());

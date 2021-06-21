@@ -179,6 +179,31 @@ public abstract class ApnsPayloadBuilder {
     }
 
     /**
+     * <p>Sets the key of a message in the receiving app's localized string list to be shown for the push notification,
+     * along with a fallback for apps that do not have the given string in the string list.
+     * The message in the app's string list may optionally have placeholders, which will be populated by values from the
+     * given {@code alertArguments}. Clears any previously-set literal alert body.</p>
+     *
+     * <p>By default, no message is shown.</p>
+     *
+     * @param localizedAlertKey a key to a string in the receiving app's localized string list
+     * @param fallback the message to be shown for this push notification if the key does not exist
+     * @param alertArguments arguments to populate placeholders in the localized alert string; may be {@code null}
+     *
+     * @return a reference to this payload builder
+     *
+     * @see ApnsPayloadBuilder#setAlertBody(String)
+     */
+    public ApnsPayloadBuilder setLocalizedAlertMessageWithFallback(final String localizedAlertKey, final String fallback, final String... alertArguments) {
+        this.localizedAlertKey = localizedAlertKey;
+        this.localizedAlertArguments = (alertArguments != null && alertArguments.length > 0) ? alertArguments : null;
+
+        this.alertBody = fallback;
+
+        return this;
+    }
+
+    /**
      * <p>Sets a short description of the notification purpose. Clears any previously-set localized title key and
      * arguments. The Apple Watch will display the title as part of the notification. According to Apple's
      * documentation, this should be:</p>
@@ -224,6 +249,27 @@ public abstract class ApnsPayloadBuilder {
     }
 
     /**
+     * <p>Sets the key of the title string in the receiving app's localized string list to be shown for the push
+     * notification, along with a fallback for apps that do not have the given string in the string list.
+     * The message in the app's string list may optionally have placeholders, which will be populated by values from
+     * the given {@code alertArguments}.</p>
+     *
+     * @param localizedAlertTitleKey a key to a string in the receiving app's localized string list
+     * @param fallback the description to be shown for this push notification if the key does not exist
+     * @param alertTitleArguments arguments to populate placeholders in the localized alert string; may be {@code null}
+     *
+     * @return a reference to this payload builder
+     */
+    public ApnsPayloadBuilder setLocalizedAlertTitleWithFallback(final String localizedAlertTitleKey, final String fallback, final String... alertTitleArguments) {
+        this.localizedAlertTitleKey = localizedAlertTitleKey;
+        this.localizedAlertTitleArguments = (alertTitleArguments != null && alertTitleArguments.length > 0) ? alertTitleArguments : null;
+
+        this.alertTitle = fallback;
+
+        return this;
+    }
+
+    /**
      * <p>Sets a subtitle for the notification. Clears any previously-set localized subtitle key and arguments.</p>
      *
      * <p>By default, no subtitle is included. Requires iOS 10 or newer.</p>
@@ -242,6 +288,9 @@ public abstract class ApnsPayloadBuilder {
 
         return this;
     }
+
+
+
 
     /**
      * <p>Sets the key of the subtitle string in the receiving app's localized string list to be shown for the push
@@ -263,6 +312,32 @@ public abstract class ApnsPayloadBuilder {
         this.localizedAlertSubtitleArguments = (alertSubtitleArguments != null && alertSubtitleArguments.length > 0) ? alertSubtitleArguments : null;
 
         this.alertSubtitle = null;
+
+        return this;
+    }
+
+    /**
+     * <p>Sets the key of the subtitle string in the receiving app's localized string list to be shown for the push
+     * notification, along with a placeholder for apps that do not have the given string in the string list.
+     * The message in the app's string list may optionally have placeholders, which will be populated by values from
+     * the given {@code alertSubtitleArguments}.</p>
+     *
+     * <p>By default, no subtitle is included. Requires iOS 10 or newer.</p>
+     *
+     * @param localizedAlertSubtitleKey a key to a string in the receiving app's localized string list
+     * @param fallback the subtitle to be shown for this push notification if the key does not exist
+     * @param alertSubtitleArguments arguments to populate placeholders in the localized subtitle string; may be
+     * {@code null}
+     *
+     * @return a reference to this payload builder
+     *
+     * @since 0.8.1
+     */
+    public ApnsPayloadBuilder setLocalizedAlertSubtitleWithFallback(final String localizedAlertSubtitleKey, final String fallback, final String... alertSubtitleArguments) {
+        this.localizedAlertSubtitleKey = localizedAlertSubtitleKey;
+        this.localizedAlertSubtitleArguments = (alertSubtitleArguments != null && alertSubtitleArguments.length > 0) ? alertSubtitleArguments : null;
+
+        this.alertSubtitle = fallback;
 
         return this;
     }
