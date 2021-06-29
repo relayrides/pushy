@@ -39,6 +39,42 @@ import java.util.*;
 @SuppressWarnings({"UnusedReturnValue", "unused"})
 public abstract class ApnsPayloadBuilder {
 
+    /**
+     * Interruption levels.
+     * 
+     * According to <a href="https://developer.apple.com/design/human-interface-guidelines/ios/system-capabilities/notifications/">Apple's Human Interface Guidelines</a>:
+     * {@code PASSIVE}. Information people can view at their leisure, like a restaurant recommendation.
+     * {@code ACTIVE}. Information people might appreciate knowing about when it arrives, like a score update on their favorite sports team.
+     * {@code TIME_SENSITIVE}. Information that directly impacts the user and requires their immediate attention, like an account security issue or a package delivery.
+     * {@code CRITICAL}. Urgent information about personal health and public safety that directly impacts the user and demands their immediate attention. Critical notifications are extremely rare and typically come from governmental and public agencies or healthcare apps. You must get an entitlement to use the Critical interruption level.
+     */
+    public enum InterruptionLevel {
+        PASSIVE {
+            @Override
+            public String toString() {
+                return "passive";
+            }
+        },
+        ACTIVE {
+            @Override
+            public String toString() {
+                return "active";
+            }
+        },
+        TIME_SENSITIVE {
+            @Override
+            public String toString() {
+                return "time-sensitive";
+            }
+        },
+        CRITICAL {
+            @Override
+            public String toString() {
+                return "critical";
+            }
+        }
+    }
+
     private String alertBody = null;
 
     private String localizedAlertKey = null;
@@ -72,6 +108,8 @@ public abstract class ApnsPayloadBuilder {
     private String summaryArgument = null;
     private Integer summaryArgumentCount = null;
 
+    private InterruptionLevel interruptionLevel = null;
+
     private String[] urlArguments = null;
 
     private final HashMap<String, Object> customProperties = new HashMap<>();
@@ -90,6 +128,7 @@ public abstract class ApnsPayloadBuilder {
     private static final String SUMMARY_ARGUMENT_KEY = "summary-arg";
     private static final String SUMMARY_ARGUMENT_COUNT_KEY = "summary-arg-count";
     private static final String URL_ARGS_KEY = "url-args";
+    private static final String INTERRUPTION_LEVEL_KEY = "interruption-level";
 
     private static final String ALERT_TITLE_KEY = "title";
     private static final String ALERT_TITLE_LOC_KEY = "title-loc-key";
@@ -113,7 +152,7 @@ public abstract class ApnsPayloadBuilder {
      *
      * @see ApnsPayloadBuilder#setSoundFileName(String)
      */
-    public static final String DEFAULT_SOUND_FILENAME = "default";
+    public static final String DEFAULT_SOUND_FILENAME = "default"; 
 
     /**
     /**
@@ -606,6 +645,22 @@ public abstract class ApnsPayloadBuilder {
     }
 
     /**
+     * <p>Sets the interruption level for the notification.</p>
+     * 
+     * @param interruptionLevel the interruption level.
+     *
+     * @see InterruptionLevel
+     * 
+     * @since 0.15
+     */
+    public ApnsPayloadBuilder setInterruptionLevel(final InterruptionLevel interruptionLevel) {
+        
+        this.interruptionLevel = interruptionLevel;
+
+        return this;
+    }
+
+    /**
      * <p>Sets the list of arguments to populate placeholders in the {@code urlFormatString} associated with a Safari
      * push notification. Has no effect for non-Safari notifications. According to the Notification Programming Guide
      * for Websites:</p>
@@ -727,6 +782,10 @@ public abstract class ApnsPayloadBuilder {
 
             if (this.urlArguments != null) {
                 aps.put(URL_ARGS_KEY, this.urlArguments);
+            }
+
+            if (this.interruptionLevel != null) {
+                aps.put(INTERRUPTION_LEVEL_KEY, this.interruptionLevel.toString());
             }
 
             final Map<String, Object> alert = new HashMap<>();
